@@ -16,7 +16,7 @@ class Ticket:
         description: {self.description}
         assigned_to: {self.assigned_to}
         status: {self.status.value}
-        priority: {self.priority}   
+        priority: {self.priority.value}   
         """
 
 
@@ -43,7 +43,7 @@ class Ticket:
 
     @id.setter
     def id(self, value):
-        if value <= 0:
+        if value is not None and value <= 0:
             raise ValueError("Ticket ID must be greater than 0")
         self._id = value
     @title.setter

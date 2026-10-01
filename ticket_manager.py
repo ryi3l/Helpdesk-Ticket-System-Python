@@ -1,8 +1,10 @@
 from models import Ticket, Priority, Status
+from exceptions import DatabaseError
 from ticket_repository import (
     ticket_exists,
     create_ticket,
-    view_ticket,
+    get_all_tickets,
+    get_ticket_by_id,
     update_ticket,
     remove_ticket
 )
@@ -28,32 +30,66 @@ class TicketManager:
             priority
         )
 
-        create_ticket(ticket)
-        print(f"Ticket Created {ticket.id:03d} created")
+        try:
+            create_ticket(ticket)
+            print(f"Ticket Created {ticket.id:03d} created")
+        except DatabaseError:
+            print("DATABASE ERROR: Unable to create ticket.")
 
     def view_ticket(self):
-        view_option = int(input("""
-        1 - View all tickets
-        2 - Search for tickets
-        """))
+        try:
+            view_option = int(input("""
+            1 - View all tickets
+            2 - Search for tickets
+            Answer: 
+            """))
+        except ValueError:
+            print("INVALID OPTION !!!")
+            return
         if view_option == 1:
-            id_choice = None
+            try:
+                results = get_all_tickets()
+            except DatabaseError:
+                print("DATABASE ERROR: Unable to get all tickets.")
+                return
         elif view_option == 2:
-            id_choice = int(input("Enter Ticket ID: "))
-
-            if not ticket_exists(id_choice):
-                print("TICKET NOT FOUND !!!")
+            try:
+                id_choice = int(input("Enter Ticket ID: "))
+            except ValueError:
+                print("INVALID TICKET ID !!!")
+                return
+            try:
+                if not ticket_exists(id_choice):
+                    print("TICKET NOT FOUND !!!")
+                    return
+            except DatabaseError:
+                print("DATABASE ERROR: Unable to check if ticket exists.")
+                return
+            try:
+                result = get_ticket_by_id(id_choice)
+                results = [result]
+            except DatabaseError:
+                print("DATABASE ERROR: Unable to get ticket by ID.")
                 return
         else:
             print("INVALID SELECTION")
             return
-        view_ticket(view_option, id_choice)
+
+        for row in results:
+            print(row)
 
     def update_ticket(self):
-        id_choice = int(input("Enter id: "))
-
-        if not ticket_exists(id_choice):
-            print("TICKET NOT FOUND !!!")
+        try:
+            id_choice = int(input("Enter Ticket ID: "))
+        except ValueError:
+            print("INVALID TICKET ID !!!")
+            return
+        try:
+            if not ticket_exists(id_choice):
+                print("TICKET NOT FOUND !!!")
+                return
+        except DatabaseError:
+            print("DATABASE ERROR: Unable to check if ticket exists.")
             return
 
         new_assigned_to = input("Enter new assigned personnel: ").upper()
@@ -69,13 +105,27 @@ class TicketManager:
         except ValueError:
             print("INVALID PRIORITY !!!")
             return
-        update_ticket(id_choice, new_assigned_to, status, priority)
+        try:
+            update_ticket(id_choice, new_assigned_to, status, priority)
+            print("UPDATE SUCCESSFUL!")
+        except DatabaseError:
+            print("DATABASE ERROR: Unable to update ticket.")
 
     def remove_ticket(self):
-        id_choice = int(input("Enter id: "))
-
-        if not ticket_exists(id_choice):
-            print("TICKET NOT FOUND !!!")
+        try:
+            id_choice = int(input("Enter Ticket ID: "))
+        except ValueError:
+            print("INVALID TICKET ID !!!")
             return
-
-        remove_ticket(id_choice)
+        try:
+            if not ticket_exists(id_choice):
+                print("TICKET NOT FOUND !!!")
+                return
+        except DatabaseError:
+            print("DATABASE ERROR: Unable to check if ticket exists.")
+            return
+        try:
+            remove_ticket(id_choice)
+            print("REMOVE SUCCESSFUL!")
+        except DatabaseError:
+            print("DATABASE ERROR: Unable to remove ticket.")

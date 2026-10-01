@@ -1,103 +1,102 @@
+import mysql.connector
 from database import get_connection
+from exceptions import DatabaseError
 
 def create_ticket(ticket):
-    connection = get_connection()
-    cursor = connection.cursor()
+    try:
+        with get_connection() as connection:
+            with connection.cursor() as cursor:
+                query = """
+                    INSERT INTO tickets(
+                        title,
+                        description,
+                        assigned_to,
+                        status,
+                        priority
+                    )
+                    VALUES (%s, %s, %s, %s, %s);
+                """
+                values = (
+                    ticket.title,
+                    ticket.description,
+                    ticket.assigned_to,
+                    ticket.status.value,
+                    ticket.priority.value
+                )
 
-    query = """
-        INSERT INTO tickets(
-            title,
-            description,
-            assigned_to,
-            status,
-            priority
-        )
-        VALUES (%s, %s, %s, %s, %s);
-    """
-    values = (
-        ticket.title,
-        ticket.description,
-        ticket.assigned_to,
-        ticket.status.value,
-        ticket.priority.value
-    )
+                cursor.execute(query, values)
+                connection.commit()
+                ticket.id = cursor.lastrowid
+    except mysql.connector.Error as e:
+        raise DatabaseError("Failed to create ticket.") from e
 
-    cursor.execute(query, values)
-    connection.commit()
-    ticket.id = cursor.lastrowid
+def get_all_tickets():
+    try:
+        with get_connection() as connection:
+            with connection.cursor(dictionary=True) as cursor:
 
-    cursor.close()
-    connection.close()
+                query = """
+                    SELECT * FROM tickets;
+                """
+                cursor.execute(query)
+                results = cursor.fetchall()
+                return results
+    except mysql.connector.Error as e:
+        raise DatabaseError("Failed to get all tickets.") from e
 
-def view_ticket(view_option, id_choice):
-    connection = get_connection()
-    cursor = connection.cursor(dictionary=True)
-
-    if view_option == 1:
-        query = """
-            SELECT * FROM tickets;
-        """
-        cursor.execute(query)
-        results = cursor.fetchall()
-        for row in results:
-            print(row)
-    elif view_option == 2:
-        query = """
-            SELECT * FROM tickets WHERE id = %s;
-        """
-        values = (id_choice,)
-        cursor.execute(query, values)
-        results = cursor.fetchall()
-        for row in results:
-            print(row)
-
-    cursor.close()
-    connection.close()
+def get_ticket_by_id(id_choice):
+    try:
+        with get_connection() as connection:
+            with connection.cursor(dictionary=True) as cursor:
+                query = """
+                        SELECT * FROM tickets
+                        WHERE id = %s;
+                """
+                cursor.execute(query, (id_choice,))
+                results = cursor.fetchone()
+                return results
+    except mysql.connector.Error as e:
+        raise DatabaseError("Failed to get ticket.") from e
 
 def update_ticket(id_choice, new_assigned_to, status, priority):
-    connection = get_connection()
-    cursor = connection.cursor()
-    query = """
-        UPDATE tickets
-        SET assigned_to = %s, status = %s, priority = %s
-        WHERE id = %s;
-    """
-    values = (new_assigned_to, status.value, priority.value, id_choice)
-    cursor.execute(query, values)
-    connection.commit()
-    print("UPDATE SUCCESSFUL!")
-
-    cursor.close()
-    connection.close()
+    try:
+        with get_connection() as connection:
+            with connection.cursor() as cursor:
+                query = """
+                    UPDATE tickets
+                    SET assigned_to = %s, status = %s, priority = %s
+                    WHERE id = %s;
+                """
+                values = (new_assigned_to, status.value, priority.value, id_choice)
+                cursor.execute(query, values)
+                connection.commit()
+    except mysql.connector.Error as e:
+        raise DatabaseError("Failed to update ticket.") from e
 
 def remove_ticket(id_choice):
-    connection = get_connection()
-    cursor = connection.cursor()
-    query = """
-        DELETE FROM tickets
-        WHERE id = %s;
-    """
-    values = (id_choice,)
-    cursor.execute(query, values)
-    connection.commit()
-    print("REMOVE SUCCESSFUL!")
-
-    cursor.close()
-    connection.close()
+    try:
+        with get_connection() as connection:
+            with connection.cursor() as cursor:
+                query = """
+                    DELETE FROM tickets
+                    WHERE id = %s;
+                """
+                values = (id_choice,)
+                cursor.execute(query, values)
+                connection.commit()
+    except mysql.connector.Error as e:
+        raise DatabaseError("Failed to remove ticket.") from e
 
 def ticket_exists(ticket_id):
-    connection = get_connection()
-    cursor = connection.cursor()
-
-    query = """
-    SELECT id FROM tickets
-        WHERE id = %s;
-    """
-
-    cursor.execute(query, (ticket_id,))
-    result = cursor.fetchone()
-
-    cursor.close()
-    connection.close()
-
-    return result is not None
+    try:
+        with get_connection() as connection:
+            with connection.cursor() as cursor:
+                query = """
+                SELECT id FROM tickets
+                    WHERE id = %s;
+                """
+                cursor.execute(query, (ticket_id,))
+                result = cursor.fetchone()
+                return result is not None
+    except mysql.connector.Error as e:
+        raise DatabaseError("Failed to check if ticket exists.") from e

@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from models import Priority, Ticket, Status
+from fastapi.middleware.cors import CORSMiddleware
 from ticket_repository import (get_all_tickets,
                                get_ticket_by_id,
                                remove_ticket,
@@ -10,6 +11,14 @@ from ticket_repository import (get_all_tickets,
                                )
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:63342"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class TicketCreate(BaseModel):
     title: str

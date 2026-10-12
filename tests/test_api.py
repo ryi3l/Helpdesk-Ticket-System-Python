@@ -1,5 +1,4 @@
 from fastapi.testclient import TestClient
-from pygments.lexers import q
 import api
 
 client = TestClient(api.app)

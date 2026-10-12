@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from models import Priority, Ticket, Status
+from fastapi.middleware.cors import CORSMiddleware
 from ticket_repository import (get_all_tickets,
                                get_ticket_by_id,
                                remove_ticket,
@@ -10,6 +11,14 @@ from ticket_repository import (get_all_tickets,
                                )
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:63342"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class TicketCreate(BaseModel):
     title: str
@@ -22,6 +31,14 @@ class TicketUpdate(BaseModel):
     status: Status
     priority: Priority
 
+class TicketResponse(BaseModel):
+    id: int
+    title: str
+    description: str
+    assigned_to: str
+    status: Status
+    priority: Priority
+
 @app.get("/tickets")
 def get_tickets():
     return get_all_tickets()
@@ -30,13 +47,10 @@ def get_tickets():
 def get_ticket(ticket_id: int):
     result = get_ticket_by_id(ticket_id)
     if result is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Ticket not found"
-        )
+        raise HTTPException(status_code=404, detail="Ticket not found")
     return result
 
-@app.post("/tickets", status_code = 201)
+@app.post("/tickets", status_code = 201, response_model=TicketResponse)
 def create_ticket_endpoint(ticket_data: TicketCreate):
     ticket = Ticket(
         None,
@@ -46,7 +60,14 @@ def create_ticket_endpoint(ticket_data: TicketCreate):
         priority=ticket_data.priority
     )
     create_ticket(ticket)
-    return ticket
+    return {
+        "id": ticket.id,
+        "title": ticket.title,
+        "description": ticket.description,
+        "assigned_to": ticket.assigned_to,
+        "status": ticket.status,
+        "priority": ticket.priority
+    }
 
 @app.put("/tickets/{ticket_id}")
 def update_ticket_endpoint(ticket_id: int, ticket_data: TicketUpdate):
